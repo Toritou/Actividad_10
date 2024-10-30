@@ -1,0 +1,61 @@
+#include <WiFi.h>
+#include <PubSubClient.h>
+
+// Configuración del cliente MQTT
+const char* mqttServer = "industrial.api.ubidots.com";
+const int mqttPort = 1883;
+const char* mqttUser = "BBUS-Hfg7o0lMk8d0DYxraUtkpl1DG3oWKs"; // Token de Ubidots
+const char* mqttPassword = ""; // Ubidots no requiere contraseña
+const char* mqttTopic = "/v1.6/devices/RAKTORO"; // Cambia "RAK1" por el nombre de tu dispositivo en Ubidots
+
+WiFiClient wifiClient;
+PubSubClient client(wifiClient);
+
+void callback(char* topic, byte* payload, unsigned int length) {
+  // Función para manejar los mensajes recibidos desde Ubidots (opcional)
+}
+
+void setup() {
+  Serial.begin(9600);
+  delay(10);
+
+  // Conexión a la red WiFi
+  WiFi.begin("WIFI-DCI", "DComInf_2K24");
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(500);
+    Serial.print(".");
+  }
+  Serial.println("");
+  Serial.println("WiFi conectado");
+  Serial.println("Dirección IP obtenida: ");
+  Serial.println(WiFi.localIP());
+
+  // Conexión al broker MQTT
+  client.setServer(mqttServer, mqttPort);
+  client.setCallback(callback);
+
+  while (!client.connected()) {
+    Serial.println("Conectando al broker MQTT...");
+    if (client.connect("rak1", mqttUser, mqttPassword)) {
+      Serial.println("Conectado al broker MQTT");
+    } else {
+      Serial.print("Error al conectar al broker MQTT: ");
+      Serial.println(client.state());
+      delay(2000);
+    }
+  }
+}
+
+void loop() {
+  // Envío de datos a Ubidots
+  float temperature = 30.0; // Cambia esto por el valor que quieras enviar desde la lectura de tu sensor, o varios valores
+  String payload = String("{\"temperature\":") + String(temperature) + String("}");
+
+  if (client.publish(mqttTopic, payload.c_str())) {
+    Serial.println("Datos enviados correctamente");
+  } else {
+    Serial.println("Error al enviar datos");
+  }
+
+  delay(5000); // Modifica este valor para cambiar la frecuencia de envío
+}
